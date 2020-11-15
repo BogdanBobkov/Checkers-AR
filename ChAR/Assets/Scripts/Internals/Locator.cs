@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Controllers;
 using UI;
+using Vuforia;
 
 namespace Internals
 {
@@ -13,6 +14,9 @@ namespace Internals
 
         [SerializeField] private UiSwitcher _uiSwitcher;
         public static UiSwitcher UiSwitcher => _instance._uiSwitcher;
+
+        [SerializeField] private DefaultTrackableEventHandler _defaultTrackableEventHandler;
+        public static DefaultTrackableEventHandler DefaultTrackableEventHandler => _instance._defaultTrackableEventHandler;
 
         private void Awake()
         {

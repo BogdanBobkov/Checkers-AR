@@ -8,6 +8,7 @@ Confidential and Proprietary - Protected under copyright and other laws.
 
 using UnityEngine;
 using Vuforia;
+using System;
 
 /// <summary>
 /// A custom handler that implements the ITrackableEventHandler interface.
@@ -32,6 +33,7 @@ public class DefaultTrackableEventHandler : MonoBehaviour, ITrackableEventHandle
         mTrackableBehaviour = GetComponent<TrackableBehaviour>();
         if (mTrackableBehaviour)
             mTrackableBehaviour.RegisterTrackableEventHandler(this);
+        onChangedStatus += OnTrackableStateChanged;
     }
 
     protected virtual void OnDestroy()
@@ -43,6 +45,8 @@ public class DefaultTrackableEventHandler : MonoBehaviour, ITrackableEventHandle
     #endregion // UNITY_MONOBEHAVIOUR_METHODS
 
     #region PUBLIC_METHODS
+
+    public event Action<TrackableBehaviour.Status, TrackableBehaviour.Status> onChangedStatus;
 
     /// <summary>
     ///     Implementation of the ITrackableEventHandler function called when the

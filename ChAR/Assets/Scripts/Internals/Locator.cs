@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Controllers;
+using UI;
 
 namespace Internals
 {
@@ -9,6 +10,9 @@ namespace Internals
 
         [SerializeField] private GameplayControl _gameplayControl;
         public static GameplayControl GameplayControl => _instance._gameplayControl;
+
+        [SerializeField] private UiSwitcher _uiSwitcher;
+        public static UiSwitcher UiSwitcher => _instance._uiSwitcher;
 
         private void Awake()
         {

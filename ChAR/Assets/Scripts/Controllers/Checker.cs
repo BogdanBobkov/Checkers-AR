@@ -11,7 +11,7 @@ namespace Controllers
 
         private void Start()
         {
-            Locator.GameplayControl.StartGame += SetStartPosition;
+            Locator.GameplayControl.onStartGame += SetStartPosition;
         }
 
         private void SetStartPosition()

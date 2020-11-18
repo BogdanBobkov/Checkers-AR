@@ -20,8 +20,9 @@ namespace UI
 
             if (isStartGame)
             {
-                Hide();
+                Locator.GameplayControl.SetPlayers(_InputFieldPlayer1.text, _InputFieldPlayer2.text);
                 Locator.GameplayControl.StartGame();
+                Hide();
             }
         }
     }

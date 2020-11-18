@@ -9,6 +9,10 @@ namespace Controllers
         [SerializeField] private Transform _StartPoint;
         [SerializeField] private ColorChecker _Color;
 
+        [HideInInspector] public  bool IsDead = false;
+
+        public ColorChecker Color => _Color;
+
         private void Start()
         {
             Locator.GameplayControl.onStartGame += SetStartPosition;
@@ -18,6 +22,7 @@ namespace Controllers
         {
             transform.SetParent(_StartPoint);
             transform.localPosition = Vector3.zero;
+            IsDead = false;
         }
     }
 }

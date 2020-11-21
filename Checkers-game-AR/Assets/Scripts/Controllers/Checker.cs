@@ -6,23 +6,22 @@ namespace Controllers
 {
     public class Checker : MonoBehaviour
     {
-        [SerializeField] private Transform _StartPoint;
         [SerializeField] private ColorChecker _Color;
+        public ColorChecker Color => _Color;
 
         [HideInInspector] public  bool IsDead = false;
 
-        public ColorChecker Color => _Color;
+        private Transform _startPoint;
 
-        private void Start()
+        private void Awake()
         {
-            Locator.GameplayControl.onStartGame += SetStartPosition;
+            _startPoint = transform.parent;
         }
 
-        private void SetStartPosition()
+        private void OnEnable()
         {
-            transform.SetParent(_StartPoint);
+            transform.SetParent(_startPoint);
             transform.localPosition = Vector3.zero;
-            IsDead = false;
         }
     }
 }

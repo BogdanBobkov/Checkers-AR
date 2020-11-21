@@ -81,18 +81,20 @@ namespace Controllers
                         _CurrentCheckerForMoving = point.checker;
                         return;
                     }
-                }
 
-                if (_CurrentCheckerForMoving != null)
-                {
-                    if (hit.transform == point.transform && point.checker == null)
+                    if (_CurrentCheckerForMoving != null)
                     {
-                        Debug.Log($"[GameplayControl] [Update] You touched on point for your checker!");
-                        _CurrentCheckerForMoving.transform.SetParent(point.transform);
-                        _CurrentCheckerForMoving.transform.localPosition = Vector3.zero;
-                        _CurrentCheckerForMoving = null;
-                        _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                        if (hit.transform == point.transform && point.checker == null)
+                        {
+                            Debug.Log($"[GameplayControl] [Update] You touched on point for your checker!");
+                            _CurrentCheckerForMoving.transform.SetParent(point.transform);
+                            _CurrentCheckerForMoving.transform.localPosition = Vector3.zero;
+                            _CurrentCheckerForMoving = null;
+                            _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                        }
                     }
+
+                    return;
                 }
             }
         }

@@ -9,7 +9,8 @@ namespace Controllers
         [SerializeField] private ColorChecker _Color;
         public ColorChecker Color => _Color;
 
-        [HideInInspector] public  bool IsDead = false;
+        [HideInInspector] public bool IsDead = false;
+        [HideInInspector] public bool IsKing = false;
 
         private Transform _startPoint;
 

@@ -10,7 +10,7 @@ namespace Controllers
     public class GameplayControl : MonoBehaviour
     {
         [Serializable]
-        struct Point
+        class Point
         {
             public BoardPosition position;
             public Transform     transform;
@@ -23,7 +23,7 @@ namespace Controllers
         private Dictionary<string, ColorChecker> _Players             = new Dictionary<string, ColorChecker>();
         private ColorChecker                     _CurrentMovingPlayer = ColorChecker.Blue;
         private bool                             _IsGame              = false;
-        private Checker                          _CurrentCheckerForMoving;
+        private Point                          _PointFromMove;
 
         public event Action onStartGame;
 
@@ -78,18 +78,19 @@ namespace Controllers
                     if (point.checker != null && point.checker.Color == _CurrentMovingPlayer)
                     {
                         Debug.Log($"[GameplayControl] [Update] You touched on your checker!");
-                        _CurrentCheckerForMoving = point.checker;
+                        _PointFromMove = point;
                         return;
                     }
 
-                    if (_CurrentCheckerForMoving != null)
+                    if (_PointFromMove != null)
                     {
                         if (hit.transform == point.transform && point.checker == null)
                         {
+                            //if(point.)
                             Debug.Log($"[GameplayControl] [Update] You touched on point for your checker!");
-                            _CurrentCheckerForMoving.transform.SetParent(point.transform);
-                            _CurrentCheckerForMoving.transform.localPosition = Vector3.zero;
-                            _CurrentCheckerForMoving = null;
+                            _PointFromMove.transform.SetParent(point.transform);
+                            _PointFromMove.transform.localPosition = Vector3.zero;
+                            _PointFromMove = null;
                             _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
                         }
                     }

@@ -5,8 +5,8 @@ namespace Enums
     [Serializable]
     public enum ColorChecker
     {
-        Blue = 0,
-        Red  = 1
+        Blue =  1,
+        Red  = -1
     }
 
     [Serializable]

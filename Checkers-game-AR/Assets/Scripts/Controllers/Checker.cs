@@ -8,11 +8,24 @@ namespace Controllers
     {
         [SerializeField] private ColorChecker _Color;
         public ColorChecker Color => _Color;
+        private bool _isDead;
 
-        [HideInInspector] public bool IsDead = false;
         [HideInInspector] public bool IsKing = false;
 
         private Transform _startPoint;
+
+        public bool IsDead
+        {
+            set
+            {
+                _isDead = value;
+                gameObject.SetActive(!_isDead);
+            }
+            get
+            {
+                return _isDead;
+            }
+        }
 
         private void Awake()
         {

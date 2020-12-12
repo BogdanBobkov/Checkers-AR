@@ -3,6 +3,7 @@ using System;
 using Vuforia;
 using Internals;
 using Enums;
+using Configs;
 using System.Collections.Generic;
 
 namespace Controllers
@@ -20,9 +21,10 @@ namespace Controllers
         [SerializeField] private GameObject _Chessboard;
         [SerializeField] private Point[]    _Points;
 
-        private Dictionary<string, ColorChecker> _Players             = new Dictionary<string, ColorChecker>();
+        private Player[] _Players = new Player[2];
         private ColorChecker                     _CurrentMovingPlayer = ColorChecker.Blue;
         private bool                             _IsGame              = false;
+        private bool _IsMoveAgain;
         private Point                          _PointFromMove;
 
         public event Action onStartGame;
@@ -37,9 +39,9 @@ namespace Controllers
             if (_IsGame)
             {
                 /* Отслеживание нажатия на экран */
-                if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+                if (Input.GetMouseButtonDown(0))
                 {
-                    Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position);
+                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                     RaycastHit hit;
 
                     if (Physics.Raycast(ray, out hit))
@@ -52,8 +54,8 @@ namespace Controllers
 
         public void SetPlayers(string Player1, string Player2)
         {
-            _Players.Add(Player1, ColorChecker.Blue);
-            _Players.Add(Player2, ColorChecker.Red);
+            _Players[0] = new Player(Player1, ColorChecker.Blue);
+            _Players[1] = new Player(Player2, ColorChecker.Red);
         }
 
         public void StartGame()
@@ -64,8 +66,11 @@ namespace Controllers
 
             foreach(var point in _Points)
             {
-                point.checker.IsDead = false;
-                point.checker.gameObject.SetActive(true);
+                if (point.checker != null)
+                {
+                    point.checker.IsDead = false;
+                    point.checker.gameObject.SetActive(true);
+                }
             }
         }
 
@@ -75,29 +80,84 @@ namespace Controllers
             {
                 if (hit.transform == point.transform)
                 {
-                    if (point.checker != null && point.checker.Color == _CurrentMovingPlayer)
+                    if (point.checker != null && !_IsMoveAgain && !point.checker.IsDead && point.checker.Color == _CurrentMovingPlayer)
                     {
-                        Debug.Log($"[GameplayControl] [Update] You touched on your checker!");
+                        Debug.Log($"[GameplayControl] [CheckTouchPosition] You touched on your checker!");
                         _PointFromMove = point;
                         return;
                     }
 
                     if (_PointFromMove != null)
                     {
-                        if (hit.transform == point.transform && point.checker == null)
+                        if (hit.transform == point.transform && point.checker == null || 
+                            hit.transform == point.transform && point.checker.IsDead)
                         {
-                            //if(point.)
-                            Debug.Log($"[GameplayControl] [Update] You touched on point for your checker!");
-                            _PointFromMove.transform.SetParent(point.transform);
-                            _PointFromMove.transform.localPosition = Vector3.zero;
-                            _PointFromMove = null;
-                            _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                            var distanceBetweenPoints = (int)point.position - (int)_PointFromMove.position;
+                            if (distanceBetweenPoints == (int)_CurrentMovingPlayer * 9 ||
+                               distanceBetweenPoints == (int)_CurrentMovingPlayer * 11)
+                            {
+                                MoveTo(point);
+                                _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                            }
+                            else 
+                            if (Math.Abs(distanceBetweenPoints) == 18 ||
+                                Math.Abs(distanceBetweenPoints) == 22)
+                            {
+                                foreach (var element in _Points)
+                                {
+                                    if ((int)element.position == (int)_PointFromMove.position + distanceBetweenPoints / 2)
+                                    {
+                                        element.checker.IsDead = true;
+                                        foreach (var player in _Players)
+                                            if (player.Color != _CurrentMovingPlayer)
+                                            {
+                                                player.NumOfChackers--;
+                                                if(player.NumOfChackers == 0)
+                                                {
+                                                    Locator.UiSwitcher.FinishMenu.Show();
+                                                    _IsGame = false;
+                                                }
+                                            }
+
+                                        MoveTo(point);
+
+                                        foreach (var p in _Points)
+                                        {
+                                            if (p.checker != null && p.checker.Color != _CurrentMovingPlayer)
+                                            {
+                                                if (p.position == point.position + 9 && !p.checker.IsDead ||
+                                                    p.position == point.position - 9 && !p.checker.IsDead ||
+                                                    p.position == point.position + 11 && !p.checker.IsDead ||
+                                                    p.position == point.position - 11 && !p.checker.IsDead)
+                                                {
+                                                    _PointFromMove = point;
+                                                    _IsMoveAgain = true;
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        _IsMoveAgain = false;
+                                        _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
 
                     return;
                 }
             }
+        }
+
+        private void MoveTo(Point pointTo)
+        {
+            Debug.Log($"[GameplayControl] [CheckTouchPosition] You touched on point for your checker!");
+            pointTo.checker = _PointFromMove.checker;
+            _PointFromMove.checker.transform.SetParent(pointTo.transform);
+            _PointFromMove.checker.transform.localPosition = Vector3.zero;
+            _PointFromMove.checker = null;
+            _PointFromMove = null;
         }
 
         private void ChangedStatus(TrackableBehaviour.Status previousStatus, TrackableBehaviour.Status newStatus)

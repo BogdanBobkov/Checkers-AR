@@ -4,7 +4,7 @@ using Vuforia;
 using Internals;
 using Enums;
 using Configs;
-using System.Collections.Generic;
+using System.Linq;
 
 namespace Controllers
 {
@@ -18,14 +18,16 @@ namespace Controllers
             public Checker       checker;
         }
 
+        [SerializeField] private Material   _YellowMaterial;
         [SerializeField] private GameObject _Chessboard;
         [SerializeField] private Point[]    _Points;
 
         private Player[] _Players = new Player[2];
         private ColorChecker                     _CurrentMovingPlayer = ColorChecker.Blue;
         private bool                             _IsGame              = false;
-        private bool _IsMoveAgain;
-        private Point                          _PointFromMove;
+        private bool                             _IsMoveAgain;
+        private Point                            _PointFromMove;
+        private Material                         _startMaterialChecker;
 
         public event Action onStartGame;
 
@@ -83,7 +85,11 @@ namespace Controllers
                     if (point.checker != null && !_IsMoveAgain && !point.checker.IsDead && point.checker.Color == _CurrentMovingPlayer)
                     {
                         Debug.Log($"[GameplayControl] [CheckTouchPosition] You touched on your checker!");
+                        if (_PointFromMove != null) _PointFromMove.checker.GetComponent<MeshRenderer>().material = _startMaterialChecker;
                         _PointFromMove = point;
+                        var renderer = _PointFromMove.checker.GetComponent<MeshRenderer>();
+                        _startMaterialChecker = renderer.material;
+                        _PointFromMove.checker.GetComponent<MeshRenderer>().material = _YellowMaterial;
                         return;
                     }
 
@@ -96,58 +102,90 @@ namespace Controllers
                             if (distanceBetweenPoints == (int)_CurrentMovingPlayer * 9 ||
                                distanceBetweenPoints == (int)_CurrentMovingPlayer * 11)
                             {
-                                MoveTo(point);
-                                _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                                var renderer = _PointFromMove.checker.GetComponent<MeshRenderer>();
+                                _PointFromMove.checker.transform.position = point.transform.position;
+                                Locator.UiSwitcher.GameMenu.Show(() =>
+                                {
+                                    MoveTo(point);
+                                    _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                                    renderer.material = _startMaterialChecker;
+                                }, () => { 
+                                    _PointFromMove.checker.transform.localPosition = Vector3.zero;
+                                    renderer.material = _startMaterialChecker;
+                                });
                             }
                             else 
                             if (Math.Abs(distanceBetweenPoints) == 18 ||
                                 Math.Abs(distanceBetweenPoints) == 22)
                             {
-                                foreach (var element in _Points)
+                                EatEnemyChecker(distanceBetweenPoints, point);
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        private void EatEnemyChecker(int distanceBetweenPoints, Point pointTo)
+        {
+            var element = GetPoint((BoardPosition)((int)_PointFromMove.position + distanceBetweenPoints / 2));
+            if (element != null && element.checker != null)
+            {
+                _PointFromMove.checker.transform.position = pointTo.transform.position;
+                _PointFromMove.checker.GetComponent<MeshRenderer>().material = _YellowMaterial;
+                Locator.UiSwitcher.GameMenu.Show(() =>
+                {
+                    element.checker.IsDead = true;
+                    foreach (var player in _Players)
+                        if (player.Color != _CurrentMovingPlayer)
+                        {
+                            player.NumOfChackers--;
+                            if (player.NumOfChackers == 0)
+                            {
+                                string name = _Players.FirstOrDefault(t => t.Color == _CurrentMovingPlayer).Name;
+                                Locator.UiSwitcher.FinishMenu.Show(name);
+                                _IsGame = false;
+                            }
+                        }
+
+                    MoveTo(pointTo);
+                    pointTo.checker.GetComponent<MeshRenderer>().material = _startMaterialChecker;
+
+                    foreach (var p in _Points)
+                    {
+                        if (p.checker != null && p.checker.Color != _CurrentMovingPlayer)
+                        {
+                            if (p.position == pointTo.position + 9 && !p.checker.IsDead ||
+                                p.position == pointTo.position - 9 && !p.checker.IsDead ||
+                                p.position == pointTo.position + 11 && !p.checker.IsDead ||
+                                p.position == pointTo.position - 11 && !p.checker.IsDead)
+                            {
+                                var nextPoint = GetPoint((BoardPosition)(2 * (int)p.position - (int)pointTo.position));
+                                if (nextPoint != null && nextPoint.checker == null)
                                 {
-                                    if ((int)element.position == (int)_PointFromMove.position + distanceBetweenPoints / 2)
-                                    {
-                                        element.checker.IsDead = true;
-                                        foreach (var player in _Players)
-                                            if (player.Color != _CurrentMovingPlayer)
-                                            {
-                                                player.NumOfChackers--;
-                                                if(player.NumOfChackers == 0)
-                                                {
-                                                    Locator.UiSwitcher.FinishMenu.Show();
-                                                    _IsGame = false;
-                                                }
-                                            }
-
-                                        MoveTo(point);
-
-                                        foreach (var p in _Points)
-                                        {
-                                            if (p.checker != null && p.checker.Color != _CurrentMovingPlayer)
-                                            {
-                                                if (p.position == point.position + 9 && !p.checker.IsDead ||
-                                                    p.position == point.position - 9 && !p.checker.IsDead ||
-                                                    p.position == point.position + 11 && !p.checker.IsDead ||
-                                                    p.position == point.position - 11 && !p.checker.IsDead)
-                                                {
-                                                    _PointFromMove = point;
-                                                    _IsMoveAgain = true;
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                        _IsMoveAgain = false;
-                                        _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
-                                        break;
-                                    }
+                                    _PointFromMove = pointTo;
+                                    _IsMoveAgain = true;
+                                    return;
                                 }
                             }
                         }
                     }
-
-                    return;
-                }
+                    _IsMoveAgain = false;
+                    _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                }, () =>
+                {
+                    _PointFromMove.checker.transform.localPosition = Vector3.zero;
+                    _PointFromMove.checker.GetComponent<MeshRenderer>().material = _startMaterialChecker;
+                });
             }
+        }
+
+        private Point GetPoint(BoardPosition boardPosition)
+        {
+            foreach (var element in _Points) if(element.position == boardPosition) return element;
+
+            return null;
         }
 
         private void MoveTo(Point pointTo)
@@ -177,7 +215,7 @@ namespace Controllers
         {
             Debug.Log("[GameplayControl] [OnLose] Lose");
             _IsGame = false;
-            Locator.UiSwitcher.FinishMenu.Show();
+            Locator.UiSwitcher.FinishMenu.Show(PlayerWon);
         }
     }
 }

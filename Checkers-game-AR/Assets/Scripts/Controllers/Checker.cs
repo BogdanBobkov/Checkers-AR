@@ -10,8 +10,6 @@ namespace Controllers
         public ColorChecker Color => _Color;
         private bool _isDead;
 
-        [HideInInspector] public bool IsKing = false;
-
         private Transform _startPoint;
 
         public bool IsDead

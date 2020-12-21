@@ -29,6 +29,8 @@ namespace Controllers
         private Point                            _PointFromMove;
         private Material                         _startMaterialChecker;
 
+        private bool                             _IsRedPlayerComputer = false;
+
         public event Action onStartGame;
 
         private void Start()
@@ -40,15 +42,51 @@ namespace Controllers
         {
             if (_IsGame)
             {
-                /* Отслеживание нажатия на экран */
-                if (Input.GetMouseButtonDown(0))
+                if (!_IsRedPlayerComputer || _CurrentMovingPlayer == ColorChecker.Blue)
                 {
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    RaycastHit hit;
-
-                    if (Physics.Raycast(ray, out hit))
+                    /* Отслеживание нажатия на экран */
+                    if (Input.GetMouseButtonDown(0))
                     {
-                        CheckTouchPosition(hit);
+                        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                        RaycastHit hit;
+
+                        if (Physics.Raycast(ray, out hit))
+                        {
+                            CheckTouchPosition(hit);
+                        }
+                    }
+                } else if(_CurrentMovingPlayer == ColorChecker.Red)
+                {
+                    foreach(var pointFrom in _Points)
+                    {
+                        if(pointFrom.checker != null && pointFrom.checker.Color == ColorChecker.Red)
+                        {
+                            foreach(var pointTo in _Points)
+                            {
+                                if (pointTo.checker == null || pointTo.checker.IsDead)
+                                {
+                                    var distanceBetweenPoints = (int)pointTo.position - (int)pointFrom.position;
+                                    if (distanceBetweenPoints == (int)_CurrentMovingPlayer * 9 ||
+                                        distanceBetweenPoints == (int)_CurrentMovingPlayer * 11)
+                                    {
+                                        _PointFromMove = pointFrom;
+                                        _PointFromMove.checker.transform.position = pointTo.transform.position;
+                                        MoveTo(pointTo);
+                                        _CurrentMovingPlayer = (_CurrentMovingPlayer == ColorChecker.Blue ? ColorChecker.Red : ColorChecker.Blue);
+                                        return;
+                                    }
+                                    else
+                                    if (Math.Abs(distanceBetweenPoints) == 18 ||
+                                        Math.Abs(distanceBetweenPoints) == 22)
+                                    {
+                                        _PointFromMove = pointFrom;
+                                        _startMaterialChecker = _PointFromMove.checker.GetComponent<MeshRenderer>().material;
+                                        EatEnemyChecker(distanceBetweenPoints, pointTo, true);
+                                        if (_CurrentMovingPlayer != ColorChecker.Red) return;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -58,6 +96,8 @@ namespace Controllers
         {
             _Players[0] = new Player(Player1, ColorChecker.Blue);
             _Players[1] = new Player(Player2, ColorChecker.Red);
+
+            if(Player2 == "КОМПЬЮТЕР") _IsRedPlayerComputer = true;
         }
 
         public void StartGame()
@@ -127,10 +167,10 @@ namespace Controllers
             }
         }
 
-        private void EatEnemyChecker(int distanceBetweenPoints, Point pointTo)
+        private void EatEnemyChecker(int distanceBetweenPoints, Point pointTo, bool isYes = false)
         {
             var element = GetPoint((BoardPosition)((int)_PointFromMove.position + distanceBetweenPoints / 2));
-            if (element != null && element.checker != null)
+            if (element != null && element.checker != null && element.checker.Color != _PointFromMove.checker.Color)
             {
                 _PointFromMove.checker.transform.position = pointTo.transform.position;
                 _PointFromMove.checker.GetComponent<MeshRenderer>().material = _YellowMaterial;
@@ -144,7 +184,7 @@ namespace Controllers
                             if (player.NumOfChackers == 0)
                             {
                                 string name = _Players.FirstOrDefault(t => t.Color == _CurrentMovingPlayer).Name;
-                                Locator.UiSwitcher.FinishMenu.Show(name);
+                                OnFinish(name);
                                 _IsGame = false;
                             }
                         }
@@ -164,8 +204,11 @@ namespace Controllers
                                 var nextPoint = GetPoint((BoardPosition)(2 * (int)p.position - (int)pointTo.position));
                                 if (nextPoint != null && nextPoint.checker == null)
                                 {
-                                    _PointFromMove = pointTo;
-                                    _IsMoveAgain = true;
+                                    if (!isYes)
+                                    {
+                                        _PointFromMove = pointTo;
+                                        _IsMoveAgain = true;
+                                    }
                                     return;
                                 }
                             }
@@ -178,6 +221,8 @@ namespace Controllers
                     _PointFromMove.checker.transform.localPosition = Vector3.zero;
                     _PointFromMove.checker.GetComponent<MeshRenderer>().material = _startMaterialChecker;
                 });
+
+                if (isYes) Locator.UiSwitcher.GameMenu.ButtonYes();
             }
         }
 
